@@ -40,6 +40,15 @@ export CPA_HOME=~/CPAchecker-1.9.1-unix
 ./cityprover --verifier=ult c-decr-decr-true-frv # run one benchmark
 ```
 
+Once it completes, it will instruct you how to harvest the results, along the lines of:
+
+```
+ ./harvest --s=Rcpa,DARcpa c-decr-decr-true-frv
+ ```
+
+ This generates a LaTeX output. If you add `--latexmacros` it will surround this output with
+ everything needed to compile the latex.
+
 
 ## Adding a new ADT
 

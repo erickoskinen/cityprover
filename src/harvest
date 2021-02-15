@@ -16,7 +16,7 @@ my $justult      = 1;
 ######################################################################
 
 use Parse qw{cpa};
-use Results qw{to_html};
+use Results qw{to_html latex_head latex_foot};
 use CityProver qw{bname};
 
 # decide which benchmarks
@@ -24,14 +24,21 @@ my @benches;
 my @stages = (qw/Rult DARult/);
 my $DOWEB = 0;
 my $CONCISE=0;
-die "usage: harvest [options] [--s=Rcpa,Rult,DARcpa,DARult] list of benchmarks.. \n" unless $#ARGV > -1;
+my $LATEXMACROS = 0;
+die "usage: harvest [options] [--s=Rcpa,Rult,DARcpa,DARult] list of benchmarks.. 
+
+   options include:
+       --latexmacros
+" unless $#ARGV > -1;
 my @as = @ARGV;
 my %useOEBs;
 if ($#as >= 0) {
     # shift off the "--X=Y" args
     while ($#as >= 0 && $as[0] =~ m/^--([^=]+)=(.*)$/) {
         my ($k,$v) = ($1,$2);
-        if ($k eq 'fromdir') {
+        if ($k eq 'latexmacros') {
+            $LATEXMACROS = 1;
+        } elsif ($k eq 'fromdir') {
             opendir(DIR, $v) or die "$!";
             my %tmp;
             while(my $f = readdir(DIR)) {
@@ -180,5 +187,7 @@ if ($DOWEB == 1) {
         print "log:     $URL/log-$ts.txt\n";
     }
 } else {
+    print latex_head() if $LATEXMACROS;
     print foreach @OUT;
+    print latex_foot() if $LATEXMACROS;
 }

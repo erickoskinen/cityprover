@@ -116,4 +116,50 @@ sub move_log {
     chmod 0644, "$bInfo->{htmltmpdir}/$newfn";
     $bInfo->{logurl} = "http://dalwhinnie.cs.stevens.edu/cityprover/$tmpname/$newfn";
 }
+
+sub latex_head {
+    return '
+    \documentclass{article}
+    \begin{document}
+    \newcommand\cpac[1]{\textcolor{purple}{#1}}
+\newcommand\rTRUE{$\checkmark$}
+\newcommand\rUNKNOWN{{\bf ?}}
+\newcommand\rTIMEOUT[1]{{\bf TO}} %$_{#1}$}
+\newcommand\rMEMOUT{{\bf MO}}
+\newcommand\rIG{n/a}
+\newcommand\rFALSE{$\chi$}
+\newcommand\rgood{ok}
+\newcommand\rFAIL{\xmark}% \red{X}}
+\newcommand\ttM[1]{\texttt{#1}}
+\newcommand\MM[2]{\ttM{\small #1}\bowtie\ttM{\small #2}}
+\renewcommand\oe{}
+\newcommand\rv{}
+\newcommand\oeA{i}
+\newcommand\oeB{ii}
+\newcommand\phiasA{{}^1\!\varphi_\texttt{push}^\texttt{pop}}
+\newcommand\phihti{{}^i\!\varphi_\texttt{put}^\texttt{put}}
+\newcommand\phihtA{{}^1\!\varphi_\texttt{put}^\texttt{put}}
+\newcommand\phihtB{{}^2\!\varphi_\texttt{put}^\texttt{put}}
+\newcommand\phihtC{{}^3\!\varphi_\texttt{put}^\texttt{put}}
+\newcommand\CPA[1]{}
+\newcommand\ULT[1]{#1}
+\newcommand\ONESHOT[1]{#1}
+\newcommand\Rcpa[1]{#1}
+\newcommand\Rult[1]{#1}
+\newcommand\DARcpa[1]{#1}
+\newcommand\DARult[1]{#1}
+\newcommand\Reduce{{\sc Reduce}}
+\newcommand\DAReduce{{\sc DAReduce}}
+\begin{tabular}{|l|c|p{0.6in}|c||rc|rc||rc|rc|}
+\hline
+        {\bf ADT} & {\bf Methods}&   &  & \multicolumn{4}{c|}{\Reduce} & \multicolumn{4}{c|}{\DAReduce}  \\
+        & $m(x_1),n(y_1)$ &  $\varphi_{m(x_1)}^{n(y_1)}$ & {\bf Exp.} & \multicolumn{2}{c|}{{\bf CPA}} & \multicolumn{2}{c|}{{\bf Ult}}  & \multicolumn{2}{c|}{{\bf CPA}}  & \multicolumn{2}{c|}{{\bf Ult}} \\
+    \hline';
+}
+sub latex_foot {
+    return '\hline
+\end{tabular}
+\end{document}';
+}
+
 1;
