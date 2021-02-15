@@ -147,7 +147,7 @@ sub fetch_results {
 }
 
 ###########################################################################
-# Current
+# Display the Latex Output
 foreach my $b (@benches) {
   my ($ds,$m1,$m2,$phi,$expt) = split('-',$b);
 
@@ -166,76 +166,6 @@ foreach my $b (@benches) {
   $o .= "\\\\  %% $b\n";
   push @OUT, $o;
 }
-###########################################################################
-# New
-#   Using Google Charts:
-#   https://developers.google.com/chart/interactive/docs/gallery/table
-#
-        # data.addColumn('number', 'cpa<br>Red<br>Time');
-        # data.addColumn('string', 'cpa<br>Red<br>Result');
-        # data.addColumn('string', 'cpa<br>Red<br>Log');
-        # data.addColumn('number', 'ult<br>Red<br>Time');
-        # data.addColumn('string', 'ult<br>Red<br>Result');
-        # data.addColumn('string', 'ult<br>Red<br>Log');
-my $cols = qq{
-        data.addColumn('string', 'ADT');
-        data.addColumn('string', 'Methods');
-        data.addColumn('string', 'Property');
-        data.addColumn('boolean', 'Expected');
-        };
-$cols .= join("\n  ", map(qq{
-        data.addColumn('number', 'cpa<br>$_');
-        data.addColumn('string', 'cpa<br>$_');
-        data.addColumn('string', '');
-},qw/oneshot rv oeA oeB/));
-$cols .= join("\n  ", map(qq{
-        data.addColumn('number', 'Ult<br>$_');
-        data.addColumn('string', 'Ult<br>$_');
-        data.addColumn('string', '');
-},qw/oneshot rv oeA oeB/));
-$cols .= "        data.addColumn('string', 'BenchID');\n";
-my $rows = qq{        data.addRows([\n};
-print HTML "<html><body><table>\n";
-use File::Temp qw/ tempfile tempdir /;
-copy($CWD."/cityprover.css",$HTML_ROOT);
-my $ftd = File::Temp->newdir( "$HTML_ROOT/out-XXXXXXX", CLEANUP => 0 );
-my $htmlTmpDir = $ftd->dirname;
-foreach my $b (@benches) {
-    my $bcols = Results::bench_to_html($b);
-    my $oResults = '';
-    warn "$b...\n";
-    for my $v (qw/cpa ult/) {
-        my %accum = ();
-        for my $s (qw/oneshot rv oeA oeB/) {
-            my $bInfo = CityProver::bInfo($ANALYSIS_DIR,$b,$s,$v);
-            $bInfo->{htmltmpdir} = $htmlTmpDir;
-            Results::move_log($bInfo);
-            my $bRes = Parse::parse($v,$bInfo->{logfn});
-            $accum{rvFail} = 1 if $s eq 'rv' and $bRes->{result} eq 'FALSE'; 
-            $bRes->{result} = 'n/a' if $s eq 'oeA' && $accum{rvFail} == 1; 
-            $oResults .= ",\n    /* $v $s : */".Results::to_html($bInfo,$bRes);
-            #die Dumper($bInfo,$bRes) if $b eq 'm-read-write-phi1-s' and $s eq 'rv' and $v eq 'ult';
-        }
-        # my $ult_bInfo = CityProver::bInfo($ANALYSIS_DIR,$b,$s,'ult');
-        # $oResults .= ",".Results::to_html($ult_bInfo,Parse::ult($ult_bInfo->{ultlog}));
-    }
-    warn "done. $b\n";
-    $rows .= qq{[$bcols${oResults},'<div style="white-space: nowrap;">$b</div>'],\n};
-}
-$rows .= "]);\n";
-open SRC, "template.html" or die $!;
-open HTML, ">/var/www/html/cityprover/index.html" or die $!;
-while(<SRC>){
-    s/<!--COLUMNS_HERE-->/$cols/;
-    s/<!--ROWS_HERE-->/$rows/;
-    print HTML $_;
-}
-close SRC;
-close HTML;
-chmod 755, $htmlTmpDir;
-# data.setCell(2, 2, 'Memory', 'MEMEMEM', {style: 'font-style:bold; font-size:22px; background-color: red;'});
-
-###########################################################################
 
 if ($DOWEB == 1) {
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
