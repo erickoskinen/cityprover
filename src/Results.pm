@@ -152,8 +152,8 @@ sub latex_head {
 \newcommand\DAReduce{{\sc DAReduce}}
 \begin{tabular}{|l|c|p{0.6in}|c||rc|rc||rc|rc|}
 \hline
-        {\bf ADT} & {\bf Methods}&   &  & \multicolumn{4}{c|}{\Reduce} & \multicolumn{4}{c|}{\DAReduce}  \\
-        & $m(x_1),n(y_1)$ &  $\varphi_{m(x_1)}^{n(y_1)}$ & {\bf Exp.} & \multicolumn{2}{c|}{{\bf CPA}} & \multicolumn{2}{c|}{{\bf Ult}}  & \multicolumn{2}{c|}{{\bf CPA}}  & \multicolumn{2}{c|}{{\bf Ult}} \\
+        {\bf ADT} & {\bf Methods}&   &  & \multicolumn{4}{c|}{\Reduce} & \multicolumn{4}{c|}{\DAReduce}  \\\\
+        & $m(x_1),n(y_1)$ &  $\varphi_{m(x_1)}^{n(y_1)}$ & {\bf Exp.} & \multicolumn{2}{c|}{{\bf CPA}} & \multicolumn{2}{c|}{{\bf Ult}}  & \multicolumn{2}{c|}{{\bf CPA}}  & \multicolumn{2}{c|}{{\bf Ult}} \\\\
     \hline';
 }
 sub latex_foot {
