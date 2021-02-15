@@ -369,7 +369,8 @@ let allocate_vars() = (String.concat "\n  " [
     "  struct state_t s1;";
     "  struct state_t s2;\n" ])
 
-let gotoerror v = match v with | Vcpa -> "goto ERROR;" | Vult -> "__VERIFIER_error();"
+let gotoerror v = "__VERIFIER_error();"
+(*match v with | Vcpa -> "goto ERROR;" | Vult -> "__VERIFIER_error();"*)
 
 let assume_oer i =
   let mkasm (s : string) = ("assume("^s^");") in
