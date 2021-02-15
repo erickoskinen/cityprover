@@ -46,7 +46,6 @@ sub ult {
 }
 
 sub cpaDep {
-    warn "DEPRECATED !!!!!!!!!!!!!!!!!!!!!!!!!!\n";
     my ($logfn) = @_;
     my ($time,$result) = ('\rUNKNOWN','UNKNOWN');
     open(F,$logfn) or warn "Parse - file $logfn - $!";
@@ -62,7 +61,6 @@ sub cpaDep {
 }
 
 sub ultDep {
-    warn "DEPRECATED !!!!!!!!!!!!!!!!!!!!!!!!!!\n";
     my ($logfn) = @_;
     open(F,$logfn) or warn "file $logfn - $!";
     my ($time,$result) = ('\rUNKNOWN','UNKNOWN');

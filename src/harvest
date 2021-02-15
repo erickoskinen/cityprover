@@ -101,8 +101,8 @@ sub round {
 sub fetch_oneshot {
     my ($tool,$b,$expected) = @_;
     my ($result,$time) = ('STRANGE','STRANGE');
-    ($time,$result) = Parse::ult(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
-    ($time,$result) = Parse::cpa(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
+    ($time,$result) = Parse::ultDep(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
+    ($time,$result) = Parse::cpaDep(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
     my $ok = ('\r'.$result eq $expected ? '' : '\rFAIL');
     $result = '\r'.$result unless $result =~ /\\r/;
     my $o = sprintf(" & %-6s & %-8s $ok", $time, $result);
@@ -120,8 +120,8 @@ sub fetch_results {
 		warn "-- reusing OEB from $useOEBs{$adt}\n";
 		$b = $useOEBs{$adt};
 	    }
-	    ($time,$result) = Parse::ult(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
-	    ($time,$result) = Parse::cpa(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
+	    ($time,$result) = Parse::ultDep(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
+	    ($time,$result) = Parse::cpaDep(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
 	}
         $times{$stage} = $time;
         $results{$stage} = $result;
