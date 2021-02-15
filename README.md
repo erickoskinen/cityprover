@@ -37,7 +37,7 @@ export ULT_HOME=~/UAutomizer-linux
 export CPA_HOME=~/CPAchecker-1.9.1-unix
 ./cityprover                                     # View options
 ./cityprover --bench                             # List available benchmarks
-./cityprover --verifier=ult c-decr-decr-true-frv # run one benchmark
+./cityprover --verifier=cpa c-decr-decr-true-frv # run one benchmark
 ```
 
 Once it completes, it will instruct you how to harvest the results, along the lines of:
@@ -63,4 +63,9 @@ Once it completes, it will instruct you how to harvest the results, along the li
     * update `s1_init_state` to provide the initial state;
     * update `assume_state_space` to provide a list of assumptions to constrain the state space to valid states
     * update `clone_post` to provide the "deep copy" of the state (ie "dup")
-    * 
+ * Recompile: `make`
+ * Create `examples/<source>.c` and `examples/<source>.h`
+ * Run your benchmark:
+ ```
+ ./cityprover --verifier=cpa adt-m1-m2-phi-expectedresult
+ ```
