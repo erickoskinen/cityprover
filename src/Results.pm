@@ -118,10 +118,10 @@ sub move_log {
 }
 
 sub latex_head {
-    return '
-    \documentclass{article}
-    \begin{document}
-    \newcommand\cpac[1]{\textcolor{purple}{#1}}
+    return '\documentclass{article}
+\usepackage{amssymb}
+\begin{document}
+\newcommand\cpac[1]{\textcolor{purple}{#1}}
 \newcommand\rTRUE{$\checkmark$}
 \newcommand\rUNKNOWN{{\bf ?}}
 \newcommand\rTIMEOUT[1]{{\bf TO}} %$_{#1}$}

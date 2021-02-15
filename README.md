@@ -9,6 +9,7 @@ sudo apt-get install git ocaml opam
 # Ultimate
 wget https://github.com/ultimate-pa/ultimate/releases/download/v0.1.25/UltimateAutomizer-linux.zip
 unzip UltimateAutomizer-linux.zip 
+perl -p -i -e 's/python3.6/python3.8/' UAutomizer-linux/Ultimate.py
 # CPAchecker
 sudo apt-get install openjdk-11-jdk
 wget https://cpachecker.sosy-lab.org/CPAchecker-1.9.1-unix.zip
@@ -47,7 +48,8 @@ Once it completes, it will instruct you how to harvest the results, along the li
  ```
 
  This generates a LaTeX output. If you add `--latexmacros=1` it will surround this output with
- everything needed to compile the latex.
+ everything needed to compile the latex. *Note*: Column headers will only be correct if you 
+ have CPA results and Ultimate results (ie all of: Rcpa,Rult,DARcpa,DARult).
 
 
 ## Adding a new ADT

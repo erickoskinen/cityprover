@@ -22,7 +22,7 @@ use Cwd 'abs_path';
 my $CWD = abs_path("");
 my $CVV_DIR      = "$CWD";
 my $ANALYSIS_DIR = "$CWD/../bench";
-my $REACHPRP     = "$CWD/reach.prp";
+my $REACHPRP     = "$CWD/../examples/reach.prp";
 ######################################################################
 # Argument parsing and defaults
 my $verifier = 'ult';
