@@ -46,7 +46,7 @@ Once it completes, it will instruct you how to harvest the results, along the li
  ./harvest --s=Rcpa,DARcpa c-decr-decr-true-frv
  ```
 
- This generates a LaTeX output. If you add `--latexmacros` it will surround this output with
+ This generates a LaTeX output. If you add `--latexmacros=1` it will surround this output with
  everything needed to compile the latex.
 
 

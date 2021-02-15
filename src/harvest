@@ -28,7 +28,7 @@ my $LATEXMACROS = 0;
 die "usage: harvest [options] [--s=Rcpa,Rult,DARcpa,DARult] list of benchmarks.. 
 
    options include:
-       --latexmacros
+       --latexmacros=1
 " unless $#ARGV > -1;
 my @as = @ARGV;
 my %useOEBs;
@@ -37,7 +37,7 @@ if ($#as >= 0) {
     while ($#as >= 0 && $as[0] =~ m/^--([^=]+)=(.*)$/) {
         my ($k,$v) = ($1,$2);
         if ($k eq 'latexmacros') {
-            $LATEXMACROS = 1;
+            $LATEXMACROS = $v;
         } elsif ($k eq 'fromdir') {
             opendir(DIR, $v) or die "$!";
             my %tmp;
@@ -187,7 +187,7 @@ if ($DOWEB == 1) {
         print "log:     $URL/log-$ts.txt\n";
     }
 } else {
-    print latex_head() if $LATEXMACROS;
+    print Results::latex_head() if $LATEXMACROS;
     print foreach @OUT;
-    print latex_foot() if $LATEXMACROS;
+    print Results::latex_foot() if $LATEXMACROS;
 }
