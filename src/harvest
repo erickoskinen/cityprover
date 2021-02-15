@@ -1,0 +1,251 @@
+#!/usr/bin/perl
+
+use File::Copy;
+
+######################################################################
+use Cwd 'abs_path';
+my $CWD = abs_path($file);
+my $ANALYSIS_DIR = "$CWD/../bench";
+my $CVV_DIR      = "$CWD";
+my $HTML_ROOT    = '/var/www/html/';
+my $URL          = 'http://my.url.here';
+my $justult      = 1;
+######################################################################
+
+use Parse qw{cpa};
+use Results qw{to_html};
+use CityProver qw{bname};
+
+# decide which benchmarks
+my @benches;
+my @stages = (qw/Rult DARult/);
+my $DOWEB = 0;
+my $CONCISE=0;
+die "usage: harvest [options] [--s=Rcpa,Rult,DARcpa,DARult] list of benchmarks.. \n" unless $#ARGV > -1;
+my @as = @ARGV;
+my %useOEBs;
+if ($#as >= 0) {
+    # shift off the "--X=Y" args
+    while ($#as >= 0 && $as[0] =~ m/^--([^=]+)=(.*)$/) {
+        my ($k,$v) = ($1,$2);
+        if ($k eq 'fromdir') {
+            opendir(DIR, $v) or die "$!";
+            my %tmp;
+            while(my $f = readdir(DIR)) {
+                # next unless $f =~ /^log-(.+)-[^-]+$/;
+                next unless $f =~ /^log-(.+)-(rv|oeA|oeB)$/;
+                #print "- will harvest $1\n";
+                $tmp{$1} = 1;
+            }
+            closedir(DIR);
+            @benches = sort keys %tmp;
+        } elsif ($k eq 'useOEBs') {
+	    my @bs = split ',',$v;
+	    %useOEBs = map { (split('-',$_))[0] => $_ } @bs;
+	    #die Dumper(\%useOEBs);
+	} elsif ($k eq 'web') {
+            $DOWEB = 1;
+        } elsif ($k eq 's') {
+	    @stages = split ',', $v;
+	} elsif ($k eq 'concise') {
+	    $CONCISE = 1;
+        } else {
+            die "weird param: $k = $v\n";
+        }
+        shift @as;
+    }
+    if($#as >= 0) {
+        #print "assuming arg is a list of benches\n";
+        if ($as[0] =~ m/,/) {
+            @benches = split(',', $as[0]);
+        } else {
+            @benches = @as;
+        }
+    }
+} else {
+    #print "no args. fetching all benches\n";
+    my $b = qx{./cvv --benches}; chomp($b);
+    @benches = split(',', $b);
+}
+
+
+my @OUT;
+push @OUT, "%%% ADT   & Method Names           & Property                  & Expected   \n";
+push @OUT, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
+sub sum_stages {
+    my ($times,$results) = @_;
+    my ($rvt,$oeAt,$oeBt) = map ($times->{$_},   qw/rv oeA oeB/);
+    my ($rvr,$oeAr,$oeBr) = map ($results->{$_}, qw/rv oeA oeB/);
+    use Data::Dumper;
+    # cases that did not succeed
+    return ('\rTIMEOUT{}','\rUNKNOWN') if grep(/TIMEOUT/, ($rvt,$oeAt,$oeBt));
+    return ('\rMEMOUT', '\rUNKNOWN') if grep(/MEMOUT/,  ($rvr,$oeAr,$oeBr));
+    #return ('\rFAIL',   '\rUNKNOWN') if grep(/FAIL/,    ($rvr,$oeAr,$oeBr));
+
+    my $sum_r = '\rUNKNOWN';
+    $sum_r = '\rTRUE'  if ($rvr eq 'TRUE'  && $oeAr eq 'TRUE'  && $oeBr eq 'TRUE');
+    $sum_r = '\rFALSE' if ($rvr eq 'FALSE' || $oeAr eq 'FALSE' || $oeBr eq 'FALSE');
+
+    my @tmp = ($rvt+$oeAt+$oeBt, $sum_r);
+    return @tmp;
+}
+
+sub round {
+    return sprintf("%.1f",$_[0]);
+}
+
+
+sub fetch_oneshot {
+    my ($tool,$b,$expected) = @_;
+    my ($result,$time) = ('STRANGE','STRANGE');
+    ($time,$result) = Parse::ultDep(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
+    ($time,$result) = Parse::cpaDep(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
+    my $ok = ('\r'.$result eq $expected ? '' : '\rFAIL');
+    $result = '\r'.$result unless $result =~ /\\r/;
+    my $o = sprintf(" & %-6s & %-8s $ok", $time, $result);
+}
+
+sub fetch_results {
+    my ($tool,$b,$expected) = @_;
+    my %times; my %results; my $prev = '';
+    foreach my $stage (qw/rv oeA oeB/) {
+        my ($result,$time) = ('STRANGE','STRANGE');
+	unless ($results{rv} eq 'FALSE' or $results{oeA} eq 'FALSE') {
+	    # re-use OEBs
+	    my ($adt) = split '-', $b;
+	    if ($stage eq 'oeB' && defined $useOEBs{$adt}) {
+		warn "-- reusing OEB from $useOEBs{$adt}\n";
+		$b = $useOEBs{$adt};
+	    }
+	    ($time,$result) = Parse::ultDep(CityProver::get_logfn($ANALYSIS_DIR,'ult',$b,'oneshot')) if $tool eq 'ult';
+	    ($time,$result) = Parse::cpaDep(CityProver::get_logfn($ANALYSIS_DIR,'cpa',$b,'oneshot')) if $tool eq 'cpa';
+	}
+        $times{$stage} = $time;
+        $results{$stage} = $result;
+	$prev = $stage;
+    }
+    my ($total_time,$total_result) = sum_stages(\%times,\%results);
+    # ignore stuff after the first 'FALSE'
+    $results{oeA} = 'IG' if $results{rv} eq 'FALSE';
+    $results{oeB} = 'IG' if $results{rv} eq 'FALSE' or $results{oeA} eq 'FALSE';
+    $times{oeA} = '\rIG' if $results{rv} eq 'FALSE';
+    $times{oeB} = '\rIG' if $results{rv} eq 'FALSE' or $results{oeA} eq 'FALSE';
+    my $ok = ($total_result eq $expected ? '' : '\rFAIL');
+    if($CONCISE) {
+    return sprintf("& %-6s & %-8s $ok ",
+                   $total_time, $total_result);
+    }
+    return sprintf("& %-4s (\\r%-6s) + %-4s (\\r%-6s) + oe = %-6s & %-8s $ok ",
+		   $times{rv},
+		   $results{rv},
+		   $times{oeA},
+		   $results{oeA},
+                   $total_time, $total_result);
+}
+
+###########################################################################
+# Current
+foreach my $b (@benches) {
+  my ($ds,$m1,$m2,$phi,$expt) = split('-',$b);
+
+  my $failin = substr $expt, 1;
+  my $expected = ($expt eq 's' ? '\rTRUE' : '\rFALSE');
+  my $bname = CityProver::bname($ds);
+
+  my $o = Results::bench_to_tex($b,$expected);
+
+  for my $s (@stages) {
+      $o .= "\n   \\DARcpa{ ".fetch_results('cpa',$b,$expected)." }" if $s eq 'DARcpa';
+      $o .= "\n   \\DARult{ ".fetch_results('ult',$b,$expected)."}" if $s eq 'DARult';
+      $o .= "\n   \\Rcpa{ ".fetch_oneshot('cpa',$b,$expected)." }" if $s eq 'Rcpa';
+      $o .= "\n   \\Rult{ ".fetch_oneshot('ult',$b,$expected)." }" if $s eq 'Rult';
+  }
+  $o .= "\\\\  %% $b\n";
+  push @OUT, $o;
+}
+###########################################################################
+# New
+#   Using Google Charts:
+#   https://developers.google.com/chart/interactive/docs/gallery/table
+#
+        # data.addColumn('number', 'cpa<br>Red<br>Time');
+        # data.addColumn('string', 'cpa<br>Red<br>Result');
+        # data.addColumn('string', 'cpa<br>Red<br>Log');
+        # data.addColumn('number', 'ult<br>Red<br>Time');
+        # data.addColumn('string', 'ult<br>Red<br>Result');
+        # data.addColumn('string', 'ult<br>Red<br>Log');
+my $cols = qq{
+        data.addColumn('string', 'ADT');
+        data.addColumn('string', 'Methods');
+        data.addColumn('string', 'Property');
+        data.addColumn('boolean', 'Expected');
+        };
+$cols .= join("\n  ", map(qq{
+        data.addColumn('number', 'cpa<br>$_');
+        data.addColumn('string', 'cpa<br>$_');
+        data.addColumn('string', '');
+},qw/oneshot rv oeA oeB/));
+$cols .= join("\n  ", map(qq{
+        data.addColumn('number', 'Ult<br>$_');
+        data.addColumn('string', 'Ult<br>$_');
+        data.addColumn('string', '');
+},qw/oneshot rv oeA oeB/));
+$cols .= "        data.addColumn('string', 'BenchID');\n";
+my $rows = qq{        data.addRows([\n};
+print HTML "<html><body><table>\n";
+use File::Temp qw/ tempfile tempdir /;
+copy($CWD."/cityprover.css",$HTML_ROOT);
+my $ftd = File::Temp->newdir( "$HTML_ROOT/out-XXXXXXX", CLEANUP => 0 );
+my $htmlTmpDir = $ftd->dirname;
+foreach my $b (@benches) {
+    my $bcols = Results::bench_to_html($b);
+    my $oResults = '';
+    warn "$b...\n";
+    for my $v (qw/cpa ult/) {
+        my %accum = ();
+        for my $s (qw/oneshot rv oeA oeB/) {
+            my $bInfo = CityProver::bInfo($ANALYSIS_DIR,$b,$s,$v);
+            $bInfo->{htmltmpdir} = $htmlTmpDir;
+            Results::move_log($bInfo);
+            my $bRes = Parse::parse($v,$bInfo->{logfn});
+            $accum{rvFail} = 1 if $s eq 'rv' and $bRes->{result} eq 'FALSE'; 
+            $bRes->{result} = 'n/a' if $s eq 'oeA' && $accum{rvFail} == 1; 
+            $oResults .= ",\n    /* $v $s : */".Results::to_html($bInfo,$bRes);
+            #die Dumper($bInfo,$bRes) if $b eq 'm-read-write-phi1-s' and $s eq 'rv' and $v eq 'ult';
+        }
+        # my $ult_bInfo = CityProver::bInfo($ANALYSIS_DIR,$b,$s,'ult');
+        # $oResults .= ",".Results::to_html($ult_bInfo,Parse::ult($ult_bInfo->{ultlog}));
+    }
+    warn "done. $b\n";
+    $rows .= qq{[$bcols${oResults},'<div style="white-space: nowrap;">$b</div>'],\n};
+}
+$rows .= "]);\n";
+open SRC, "template.html" or die $!;
+open HTML, ">/var/www/html/cityprover/index.html" or die $!;
+while(<SRC>){
+    s/<!--COLUMNS_HERE-->/$cols/;
+    s/<!--ROWS_HERE-->/$rows/;
+    print HTML $_;
+}
+close SRC;
+close HTML;
+chmod 755, $htmlTmpDir;
+# data.setCell(2, 2, 'Memory', 'MEMEMEM', {style: 'font-style:bold; font-size:22px; background-color: red;'});
+
+###########################################################################
+
+if ($DOWEB == 1) {
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)=localtime(time);
+    my $ts = sprintf ( "%04d%02d%02d-%02d%02d%02d",
+                       $year+1900,$mon+1,$mday,$hour,$min,$sec);
+    open OUT, ">$WEB_DIR/results-$ts.txt" or die $!;
+    print OUT foreach @OUT;
+    close OUT;
+    print "results: $URL/results-$ts.txt\n";
+    if (-e "$WEB_DIR/log") {
+        copy("$WEB_DIR/log", "$WEB_DIR/log-$ts.txt");
+        print "log:     $URL/log-$ts.txt\n";
+    }
+} else {
+    print foreach @OUT;
+}

@@ -1,0 +1,211 @@
+#!/usr/bin/perl
+
+use Time::Out qw(timeout) ;
+
+die "cityprover: must set CPA_HOME or ULT_HOME\n".
+    "  eg. export ULT_HOME=~/UAutomizer-linux\n"
+    unless $ENV{CPA_HOME} or $ENV{ULT_HOME};
+my $ULT_DIR = $ENV{ULT_HOME} or "~/UAutomizer-linux";
+my $CPA_DIR = $ENV{CPA_HOME} or "~/CPAchecker-1.9.1-unix";
+
+print "ULT_DIR=$ULT_DIR\n";
+print "CPA_DIR=$CPA_DIR\n";
+$ULTIMATE_DIR=$ULT_DIR;
+
+use CityProver qw{binfo};
+
+######################################################################
+use Cwd 'abs_path';
+my $CWD = abs_path($file);
+my $CVV_DIR      = "$CWD";
+my $ANALYSIS_DIR = "$CWD/../bench";
+my $REACHPRP     = "$CWD/reach.prp";
+######################################################################
+# Argument parsing and defaults
+my $verifier = 'ult';
+my $TIMEOUT = 30;
+
+######################################################################
+
+
+die   "
+  usage: \$ cityprover --benches   # list all benches
+
+    OR
+
+         \$ cityprover (,-separated list of benchmarks)
+
+    OPTIONS:
+       --timeout=(# of seconds)
+       --verifier=(cpa|ult)
+       --ea=1
+       --cex                                  # show a counterexample
+       --stages=oneshot,rv,oeA,oeB
+       --andharvest=true"
+ unless $#ARGV > -1;
+
+my @stages = qw/oneshot rv oeA oeB/; # or naive
+
+# decide which benchmarks
+my @benches;
+my $HARVEST = 0;
+my $CPA = 0;
+my $CEX = 0;
+my $PID;
+my $EA = "";
+if ($ARGV[0] =~ /--bench$/) {
+    print CityProver::all_benches_str();
+    exit;
+}
+if ($ARGV[0] =~ /--benches=(.+)$/) {
+    print join(',',CityProver::benches_of_type($1));
+    exit;
+}
+while ($#ARGV >= 0 && $ARGV[0] =~ m/^--([^=]+)=?(.*)$/) {
+    my $a = $ARGV[0];
+    if ($a =~ /^--timeout=(.*)$/) { $TIMEOUT = $1; shift @ARGV; }
+    elsif ($a =~ /^--verifier=(.*)$/) { $verifier = $1; shift @ARGV; }
+    elsif ($a =~ /^--stages?=(.*)$/) { @stages = split ',', $1; shift @ARGV; }
+    elsif ($a =~ /^--ea/) { $EA = "-ea"; shift @ARGV; }
+    elsif ($a =~ /^--cex/) { $CEX = 1; shift @ARGV; }
+    elsif ($a =~ /^--andharvest=(.*)$/) {
+        $HARVEST = 1;
+        $PID = $1;
+        shift @ARGV;
+    } else { die "strange arg: $a\n"}
+}
+if ($#ARGV >= 0) {
+  if ($ARGV[0] =~ m/,/) {
+    @benches = split(',', $ARGV[0]);
+  } else {
+    @benches = @ARGV;
+  }
+} else {
+  my $b = qx{./cvv --benches}; chomp($b);
+  @benches = split(',', $b);
+}
+
+sub run_to {
+    my ($cmd,$logfn) = @_;
+    my $extraTO = $TIMEOUT + 60;
+    print qq{CMD (with timeout $TIMEOUT and extra TO $extraTO): $cmd\n};
+    timeout $extraTO => sub { print qx{$cmd}; };
+
+    if ($@){
+        open TMP, ">$logfn" or die $!;
+        print TMP "EJK TIMEOUT $TIMEOUT\n";
+        close TMP;
+    }
+}
+
+sub trim_header {
+    my ($in,$out) = @_;
+    open IN, "$in" or die $!;
+    open OUT, ">$out" or die $!;
+    my $seen = 0;
+    while(<IN>) {
+        $seen = 1 if /extern void __VERI/;
+        print OUT $_ if $seen;
+    }
+    close OUT;
+    close IN;
+}
+unlink("stats.tex");
+use File::Temp qw/ tempfile tempdir /;
+my $ft = File::Temp->newdir( "/tmp/cityprovewr-XXXXXXX", CLEANUP => 0 );
+my $tmpdir = $ft->dirname;
+
+print "STAGES: ".join(', ',@stages)."\n";
+foreach my $v (@benches) {
+    my ($pref,$m1,$m2,$phi,$expect) = split('-',$v);
+
+    print "##### BENCHMARK: $v\n";
+    foreach my $stage (@stages) {
+	# Consruct the benchmark
+	chdir($CVV_DIR);
+	my $fn = "$verifier.$v.$stage.c";
+	my $out = qx{./cvv $verifier $v $stage > $tmpdir/$fn};
+	my $osrc = CityProver::binfo($pref);
+
+	print qx{cat common.h ${osrc}.h ${osrc}.c $tmpdir/$fn > $ANALYSIS_DIR/$fn.cat.c};
+	print qx{gcc -E $ANALYSIS_DIR/$fn.cat.c > $ANALYSIS_DIR/$fn};
+	# trim_header("$ANALYSIS_DIR/$fn.gcc.c", "$ANALYSIS_DIR/$fn");
+	print "---[ $v , stage=$stage ]---\nsource: $fn\n";
+
+	if($verifier eq 'cpa') {
+	    # Execute CPAchecker
+	    chdir($CPA_DIR);
+	    my $CONFIG="$CPA_DIR/config/predicateAnalysis.properties";
+	    my $cmd = "$CPA_DIR/scripts/cpa.sh -spec sv-comp-reachability -config $CONFIG $OPTIONS -skipRecursion "
+          ."-outputpath $ANALYSIS_DIR/cpa-$v-$stage $ANALYSIS_DIR/$fn";
+      run_to($cmd,"$ANALYSIS_DIR/cpa-$v-$stage/Statistics.txt");
+	    
+	    my $result = qx{grep "Verification result:" $ANALYSIS_DIR/cpa-$v-$stage/Statistics.txt};
+	    if ($result =~ /: TRUE./) { print "---> cpa proof for stage $stage\n"; }
+	    elsif ($result =~ /: FALSE./) { print "---> cpa cex for stage $stage\n"; last }
+	    elsif ($result =~ /: UNKNOWN./) { print "---> cpa UNKNOWN for stage $stage\n"; }
+	    else { print "--> cpa STRANGE -- probably a timeout - for $v-$stage\n" }
+	    print "SRC:\n  $ANALYSIS_DIR/$fn\n"."LOG:\n  $ANALYSIS_DIR/cpa-$v-$stage/Statistics.txt\n";
+	    
+	} elsif ($verifier eq 'ult') {
+	    # Execute Ultimate
+	    chdir($ULTIMATE_DIR);
+
+	    $cmd = "./Ultimate.py $EA --spec $REACHPRP --architecture 32bit --file $ANALYSIS_DIR/$fn";
+	    $cmd = $cmd." --traceabstraction.trace.refinement.strategy BADGER"; 
+
+	    run_to($cmd,"$ULTIMATE_DIR/Ultimate.log");
+	    my $result = qx{grep 'RESULT' $ULTIMATE_DIR/Ultimate.log};
+	    my $memout = qx{grep 'Cannot allocate memory' $ULTIMATE_DIR/Ultimate.log};
+	    rename("$ULTIMATE_DIR/Ultimate.log", "$ANALYSIS_DIR/log-$v-$stage");
+	    print "SRC:\n  $ANALYSIS_DIR/$fn\n"."LOG:\n  $ANALYSIS_DIR/log-$v-$stage\n";
+	    #print $result;
+	    if ($result =~ /incorrect/) { 
+		print "---> ult cex for stage $stage\n";
+		if ($CEX == 1) {
+		    die "asked for --cex, but result was not FALSE." unless $result =~ /incorrect/;
+		    print "--- running again to get model cex:\n";
+		    $cmd = $cmd." --validate witness.graphml";
+		    run_to($cmd,"$ULTIMATE_DIR/Ultimate.log");
+		    print "CEX should be here:\n   $ULTIMATE_DIR/UltimateCounterExample.errorpath\n";
+		    print qx{cat $ULTIMATE_DIR/UltimateCounterExample.errorpath};
+		}
+	    }
+	    elsif ($result =~/to be correct/) { print "---> ult proof for stage $stage\n"; }
+	    elsif ($result =~ /UNKNOWN/) { print "---> ult UNKNOWN for stage $stage\n"; }
+	    elsif ($memout =~ /Cannot allocate memory/) { print "---> ult MEMOUT for stage $stage\n"; }
+	    else { print "--> ult STRANGE -- probably a timeout - for $v-$stage\n" }
+	    
+	} else { die "unknown verifier $verifier"; }
+	
+    }
+
+}
+
+print "\n##################################\n\nReachability solvers complete. Now accumulate (\"harvest\") the results:\n\n";
+my $bms = join(" ",@benches);
+if ($HARVEST == 1) {
+    chdir($CVV_DIR);
+    print "now running harvest: $CVV_DIR/harvest --verifier=$verifier --web=true $bms\n";
+    print qx{$CVV_DIR/harvest --verifier=$verifier --web=true $bms};
+    unlink($PID);
+} else {
+    my @sg;
+    my %doneStages = map { $_ => 1 } @stages;
+    #use Data::Dumper;
+    #print Dumper(\%doneStages);
+    push @sg, 'R'.$verifier if $doneStages{oneshot};
+    delete $doneStages{oneshot};
+    push @sg, 'DAR'.$verifier if keys %doneStages == 3;
+    if (keys %doneStages > 0 && keys %doneStages < 3) {
+        print "   You have run one or more of the (rv,oeA,oeB) stages/phases of DAReduce.\n";
+        print "   Note that for harvesting to work, you must run all of them.\n";
+        print "   If you wish to re-use earlier ones, you can add the following\n";
+        print "   flag to ./harvest:   --useOEBs=m-read-read-true-s\n";
+        print "   This tells harvest to re-use the OEB proof from that (previously\n";
+        print "   run) benchmark\n\n";
+        push @sg, 'DAR'.$verifier;
+    }
+    my $sgo = ($#sg > -1 ? "--s=$sg".join(',',@sg) : '');
+    print "Harvesting the output is done as follows:\n\n  ./harvest $sgo $bms\n\n";
+}
