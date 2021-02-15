@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-use local::lib;
 use lib '.';
 use strict;
 
@@ -14,13 +13,13 @@ my $CPA_DIR = $ENV{CPA_HOME} or "~/CPAchecker-1.9.1-unix";
 
 print "ULT_DIR=$ULT_DIR\n";
 print "CPA_DIR=$CPA_DIR\n";
-$ULTIMATE_DIR=$ULT_DIR;
+my $ULTIMATE_DIR=$ULT_DIR;
 
 use CityProver qw{binfo};
 
 ######################################################################
 use Cwd 'abs_path';
-my $CWD = abs_path($file);
+my $CWD = abs_path($ARGV[0]);
 my $CVV_DIR      = "$CWD";
 my $ANALYSIS_DIR = "$CWD/../bench";
 my $REACHPRP     = "$CWD/reach.prp";
@@ -28,7 +27,7 @@ my $REACHPRP     = "$CWD/reach.prp";
 # Argument parsing and defaults
 my $verifier = 'ult';
 my $TIMEOUT = 30;
-
+my $OPTIONS = '';
 ######################################################################
 
 
@@ -155,7 +154,7 @@ foreach my $v (@benches) {
 	    # Execute Ultimate
 	    chdir($ULTIMATE_DIR);
 
-	    $cmd = "./Ultimate.py $EA --spec $REACHPRP --architecture 32bit --file $ANALYSIS_DIR/$fn";
+	    my $cmd = "./Ultimate.py $EA --spec $REACHPRP --architecture 32bit --file $ANALYSIS_DIR/$fn";
 	    $cmd = $cmd." --traceabstraction.trace.refinement.strategy BADGER"; 
 
 	    run_to($cmd,"$ULTIMATE_DIR/Ultimate.log");
@@ -210,6 +209,6 @@ if ($HARVEST == 1) {
         print "   run) benchmark\n\n";
         push @sg, 'DAR'.$verifier;
     }
-    my $sgo = ($#sg > -1 ? "--s=$sg".join(',',@sg) : '');
+    my $sgo = ($#sg > -1 ? "--s=".join(',',@sg) : '');
     print "Harvesting the output is done as follows:\n\n  ./harvest $sgo $bms\n\n";
 }
