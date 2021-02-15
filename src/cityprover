@@ -43,7 +43,7 @@ die   "
        --verifier=(cpa|ult)
        --ea=1
        --cex                                  # show a counterexample
-       --stages=oneshot,rv,oeA,oeB
+       --stages=oneshot,rv,oeA,oeB            # default is all of them
        --andharvest=true"
  unless $#ARGV > -1;
 
@@ -145,7 +145,7 @@ foreach my $v (@benches) {
 	    
 	    my $result = qx{grep "Verification result:" $ANALYSIS_DIR/cpa-$v-$stage/Statistics.txt};
 	    if ($result =~ /: TRUE./) { print "---> cpa proof for stage $stage\n"; }
-	    elsif ($result =~ /: FALSE./) { print "---> cpa cex for stage $stage\n"; last }
+	    elsif ($result =~ /: FALSE./) { print "---> cpa cex for stage $stage\n"; }
 	    elsif ($result =~ /: UNKNOWN./) { print "---> cpa UNKNOWN for stage $stage\n"; }
 	    else { print "--> cpa STRANGE -- probably a timeout - for $v-$stage\n" }
 	    print "SRC:\n  $ANALYSIS_DIR/$fn\n"."LOG:\n  $ANALYSIS_DIR/cpa-$v-$stage/Statistics.txt\n";
