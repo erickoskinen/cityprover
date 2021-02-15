@@ -18,6 +18,12 @@ unzip CPAchecker-1.9.1-unix.zip
 cpan -i Time::Out  # Note: configure cpan with "local::lib"
 export PERL5LIB=~/perl5/lib/perl5/
 
+# Apache so you can view the HTML output
+sudo apt-get install apache2
+sudo mkdir /var/www/html/cityprover
+sudo chmod 777 /var/www/html/cityprover
+
+
 git clone https://github.com/erickoskinen/cityprover.git
 cd cityprover/src
 make
