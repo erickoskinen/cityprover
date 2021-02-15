@@ -211,7 +211,19 @@ let all_bench() =
     Bench("h-get-get-phi1-s",   "hashtable",[put;get;hempty;hrm],get,get,"s1.keys == 0",Ibeta);
     Bench("h-get-get-true-s",   "hashtable",[put;get;hempty;hrm],get,get,"1 == 1",Ibeta);
     Bench("h-get-put-phi1-s",   "hashtable",[put;get;hempty;hrm],get,put,"rho_x_1 != rho_y_1",Ibeta);
-    Bench("h-get-put-true-frv", "hashtable",[put;get;hempty;hrm],get,put,"1==1",Ibeta)
+    Bench("h-get-put-true-frv", "hashtable",[put;get;hempty;hrm],get,put,"1==1",Ibeta);
+
+    (* SimpleSet3 - read only *)
+    Bench("ss3-isin-isin-true-s","simpleset",[ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3isin,"1==1",iSimpleSet);
+    (* SimpleSet3 - isin vs ___ *)
+    Bench("ss3-isin-add-phi1-s",    "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3add,"rho_x_1 != rho_y_1",iSimpleSet);
+    Bench("ss3-isin-add-true-frv",  "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3add,"1==1",iSimpleSet);
+    Bench("ss3-isin-clear-true-frv","simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3clear,"1==1",iSimpleSet);
+    Bench("ss3-isin-clear-phi1-frv",  "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3clear,"rho_x_1 != rho_y_1",iSimpleSet);
+    Bench("ss3-isin-clear-phi2-frv",  "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3clear,"s1.a != rho_x_1 && s1.b != rho_y_1",iSimpleSet);
+    Bench("ss3-isin-clear-phi3-s",  "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3clear,"s1.a != rho_x_1 && s1.b != rho_x_1",iSimpleSet);
+    Bench("ss3-isin-norm-true-s",   "simpleset", [ss3add;ss3isin;ss3clear;ss3sz],ss3isin,ss3sz,"1==1",iSimpleSet)
+
 
   ]
 
@@ -294,7 +306,6 @@ match s with
   | "mem"     -> " s2.x = s1.x;\n"
   | _ -> raise (BExn ("no clone post for :"^s))
 
-(*
 let exact_eq s =
   let sl = (match s with
   | "stack" ->
@@ -319,7 +330,6 @@ let exact_eq s =
   | _ -> raise (BExn ("no exact_eq for :"^s))
   ) in
   String.concat " && " (List.map (fun s -> "("^s^")") sl)
-*)
 
 let tex_of_b b = match b with
   | Bench(nm,adt,mlist,Method(m,_,_),Method(n,_,_),varphi,obseq) ->
