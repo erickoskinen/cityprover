@@ -5,10 +5,31 @@
 ```
 sudo apt-get update
 sudo apt-get install git ocaml opam
+
+# Ultimate
+wget https://github.com/ultimate-pa/ultimate/releases/download/v0.1.25/UltimateAutomizer-linux.zip
+unzip UltimateAutomizer-linux.zip 
+# CPAchecker
+wget https://cpachecker.sosy-lab.org/CPAchecker-1.9.1-unix.zip
+
+# Perl modules
+cpan -i Time::Out  # Note: configure cpan with "local::lib"
+export PERL5LIB=~/perl5/lib/perl5/
+
 git clone https://github.com/erickoskinen/cityprover.git
 cd cityprover/src
 make
 ```
+
+## Running CityProver
+
+```
+cd cityprover/src
+export ULT_HOME=~/UAutomizer-linux
+export CPA_HOME=~/CPAchecker-1.9.1-unix
+./cityprover
+```
+
 
 ## Adding a new ADT
 

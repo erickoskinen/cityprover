@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+use local::lib;
+use lib '.';
+use strict;
+
 use Time::Out qw(timeout) ;
 
 die "cityprover: must set CPA_HOME or ULT_HOME\n".
