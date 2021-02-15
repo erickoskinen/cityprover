@@ -7,9 +7,11 @@ sudo apt-get update
 sudo apt-get install git ocaml opam
 
 # Ultimate
+sudo apt install openjdk-8-jdk
 wget https://github.com/ultimate-pa/ultimate/releases/download/v0.1.25/UltimateAutomizer-linux.zip
 unzip UltimateAutomizer-linux.zip 
 perl -p -i -e 's/python3.6/python3.8/' UAutomizer-linux/Ultimate.py
+
 # CPAchecker
 sudo apt-get install openjdk-11-jdk
 wget https://cpachecker.sosy-lab.org/CPAchecker-1.9.1-unix.zip
