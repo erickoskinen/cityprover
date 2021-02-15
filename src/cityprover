@@ -130,7 +130,7 @@ foreach my $v (@benches) {
 	my $out = qx{./cvv $verifier $v $stage > $tmpdir/$fn};
 	my $osrc = CityProver::binfo($pref);
 
-	print qx{cat common.h ${osrc}.h ../examples/${osrc}.c $tmpdir/$fn > $ANALYSIS_DIR/$fn.cat.c};
+	print qx{cat ../examples/common.h ../examples/${osrc}.h ../examples/${osrc}.c $tmpdir/$fn > $ANALYSIS_DIR/$fn.cat.c};
 	print qx{gcc -E $ANALYSIS_DIR/$fn.cat.c > $ANALYSIS_DIR/$fn};
 	# trim_header("$ANALYSIS_DIR/$fn.gcc.c", "$ANALYSIS_DIR/$fn");
 	print "---[ $v , stage=$stage ]---\nsource: $fn\n";

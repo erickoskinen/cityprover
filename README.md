@@ -10,7 +10,9 @@ sudo apt-get install git ocaml opam
 wget https://github.com/ultimate-pa/ultimate/releases/download/v0.1.25/UltimateAutomizer-linux.zip
 unzip UltimateAutomizer-linux.zip 
 # CPAchecker
+sudo apt-get install openjdk-11-jdk
 wget https://cpachecker.sosy-lab.org/CPAchecker-1.9.1-unix.zip
+unzip CPAchecker-1.9.1-unix.zip
 
 # Perl modules
 cpan -i Time::Out  # Note: configure cpan with "local::lib"
