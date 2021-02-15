@@ -7,7 +7,7 @@ use File::Copy;
 
 ######################################################################
 use Cwd 'abs_path';
-my $CWD = abs_path($ARGV[0]);
+my $CWD = abs_path("");
 my $ANALYSIS_DIR = "$CWD/../bench";
 my $CVV_DIR      = "$CWD";
 my $HTML_ROOT    = '/var/www/html/';

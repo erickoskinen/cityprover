@@ -19,7 +19,7 @@ use CityProver qw{binfo};
 
 ######################################################################
 use Cwd 'abs_path';
-my $CWD = abs_path($ARGV[0]);
+my $CWD = abs_path("");
 my $CVV_DIR      = "$CWD";
 my $ANALYSIS_DIR = "$CWD/../bench";
 my $REACHPRP     = "$CWD/reach.prp";
@@ -32,7 +32,7 @@ my $OPTIONS = '';
 
 
 die   "
-  usage: \$ cityprover --benches   # list all benches
+  usage: \$ cityprover --bench   # list all benches
 
     OR
 

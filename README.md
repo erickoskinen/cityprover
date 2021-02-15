@@ -27,7 +27,9 @@ make
 cd cityprover/src
 export ULT_HOME=~/UAutomizer-linux
 export CPA_HOME=~/CPAchecker-1.9.1-unix
-./cityprover
+./cityprover                                     # View options
+./cityprover --bench                             # List available benchmarks
+./cityprover --verifier=ult c-decr-decr-true-frv # run one benchmark
 ```
 
 
